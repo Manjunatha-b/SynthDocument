@@ -8,7 +8,7 @@ from queue import Queue
 
 class Canvas(DrawableComponent):
     def __init__(self):
-        super().__init__(1200, 1500)
+        super().__init__([(0, 0), (1200, 1500)])
         self.partitionRegions = []
         self.partitionParams = {
             "minHeight": 400,
@@ -18,9 +18,7 @@ class Canvas(DrawableComponent):
         }
         self.partition()
         for region in self.partitionRegions:
-            width = region[1][0]-region[0][0]
-            height = region[1][1]-region[0][1]
-            text = Text(width, height, "body", True)
+            text = Text(region, "body", True)
             textImage, textBoundingBox = text()
             self.image.paste(textImage, region[0])
 

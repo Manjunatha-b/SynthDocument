@@ -2,8 +2,10 @@ from PIL import Image, ImageDraw
 
 
 class DrawableComponent():
-    def __init__(self, width, height):
-        self.image = Image.new('RGB', (width, height), color='white')
+    def __init__(self, region):
+        self.width = region[1][0]-region[0][0]
+        self.height = region[1][1]-region[0][1]
+        self.image = Image.new('RGB', (self.width, self.height), color='white')
         self.canvas = ImageDraw.Draw(self.image)
         self.boundingBox = {}
 

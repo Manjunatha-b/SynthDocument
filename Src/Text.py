@@ -19,12 +19,10 @@ class Text(DrawableComponent):
         ]
     }
 
-    def __init__(self,  width, height, typography, multiLine=True):
-        super().__init__(width, height)
+    def __init__(self,  region, typography, multiLine=True):
+        super().__init__(region)
         self.typography = typography
         self.multiLine = multiLine
-        self.width = width
-        self.height = height
         self.font = self.getFont()
         self.text = "Huge text to see if it overflows into the next line properly for the multiline case and truncates for the single line case"
         self.avg_char_width = sum(self.font.getsize(
