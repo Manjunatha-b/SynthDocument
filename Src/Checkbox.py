@@ -1,9 +1,13 @@
-import random
+import io
+import cv2
 import math
 import cairo
-import io
-from DrawableComponent import DrawableComponent
+import random
+import numpy as np
 from PIL import Image
+from imgaug import augmenters as iaa
+from DrawableComponent import DrawableComponent
+from imgaug.augmentables.polys import Polygon, PolygonsOnImage
 # from Src.DrawableComponent import DrawableComponent
 
 
@@ -13,15 +17,20 @@ class Checkbox(DrawableComponent):
         self.isSelected = random.random() > 0.5
         self.label = {
             'Value': self.isSelected,
-            'BoundingBox': [],
-            'BoundingQuad': []
+            'BoundingPoly': [],
         }
         self.boxImage = None
         self.tickImage = None
+
+        self.boxAug =  iaa.Affine(rotate=(-1.5, 1.5),translate_percent=(0.025,0.025), scale=(0.8,1))
+        self.tickAug = iaa.Affine(rotate=(-10, 10),translate_percent=(0.05,0.05),scale=(0.7,1.1))
+
         self.generateBox()
         if(self.isSelected):
             self.generateTick()
             self.combine()
+        
+        self.boxImage = 255-self.boxImage
 
     def generateBox(self):
         width = 575 + random.randint(-100, 100)
@@ -44,12 +53,22 @@ class Checkbox(DrawableComponent):
         context.stroke()
         f = io.BytesIO()
         surface.write_to_png(f)
-        self.boxImage = Image.open(f)
-        self.label['BoundingBox'] = [(x, y), (x+width, y+height)]
-        self.label['BoundingQuad'] = [
-            (x, y), (x+width, y), (x+width, y+height), (x, y+height)
-        ]
-
+        f.seek(0)
+        self.boxImage = np.asarray(bytearray(f.read()), dtype=np.uint8)
+        self.boxImage = cv2.imdecode(self.boxImage, cv2.IMREAD_UNCHANGED)[:,:,3]
+        boundingPoly = PolygonsOnImage([Polygon([
+            (x,y),
+            (x+width,y),
+            (x+width,y+height),
+            (x,y+height)
+        ])],self.boxImage.shape)
+        self.boxImage,boundingPolyAug= self.boxAug(image=self.boxImage,polygons = boundingPoly)
+        self.boxImage = cv2.cvtColor(self.boxImage,cv2.COLOR_GRAY2RGB)
+        print(self.boxImage.shape)
+        self.boxImage = boundingPolyAug.draw_on_image(self.boxImage)
+        cv2.imwrite('bruh.png',self.boxImage)
+        
+        
     def generateTick(self):
         surface = cairo.SVGSurface(None, 700, 700)
         cr = cairo.Context(surface)
@@ -95,11 +114,15 @@ class Checkbox(DrawableComponent):
 
         f = io.BytesIO()
         surface.write_to_png(f)
-        self.tickImage = Image.open(f)
+        f.seek(0)
+        self.tickImage= np.asarray(bytearray(f.read()), dtype=np.uint8)
+        self.tickImage = cv2.imdecode(self.tickImage, cv2.IMREAD_UNCHANGED)[:,:,3]
 
     def combine(self):
-
+        self.tickImage = self.tickAug(images=[self.tickImage])[0]
+        self.boxImage = cv2.addWeighted(self.boxImage, 1, self.tickImage, 1, 0.0)
+        
+        
 
 if __name__ == "__main__":
-    print("here")
-    Checkbox([(0, 0), (1000, 1000)])
+    Checkbox([(0, 0), (100, 100)])
