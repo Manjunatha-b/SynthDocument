@@ -11,13 +11,22 @@ class Checkbox(DrawableComponent):
     def __init__(self, region):
         super().__init__(region)
         self.isSelected = random.random() > 0.5
-        self.roundrect()
-        self.saveImage('bruh.png')
+        self.label = {
+            'Value': self.isSelected,
+            'BoundingBox': [],
+            'BoundingQuad': []
+        }
+        self.boxImage = None
+        self.tickImage = None
+        self.generateBox()
+        if(self.isSelected):
+            self.generateTick()
+            self.combine()
 
-    def roundrect(self):
+    def generateBox(self):
         width = 575 + random.randint(-100, 100)
         height = 575+random.randint(-100, 100)
-        x, y = (700-width)/2, (700-height)/2
+        x, y = (700-width)//2, (700-height)//2
         r = random.randint(0, 50) if(random.random() > 0.5) else 0
         surface = cairo.SVGSurface(
             None, 700, 700)
@@ -35,13 +44,14 @@ class Checkbox(DrawableComponent):
         context.stroke()
         f = io.BytesIO()
         surface.write_to_png(f)
-        surface.write_to_png("wtf.png")
-        self.image = Image.open(f)
-        print(self.image)
+        self.boxImage = Image.open(f)
+        self.label['BoundingBox'] = [(x, y), (x+width, y+height)]
+        self.label['BoundingQuad'] = [
+            (x, y), (x+width, y), (x+width, y+height), (x, y+height)
+        ]
 
-    def correctTick(path):
-        surface = cairo.SVGSurface(
-            width_in_points=700, height_in_points=700)
+    def generateTick(self):
+        surface = cairo.SVGSurface(None, 700, 700)
         cr = cairo.Context(surface)
         lineWidth = random.randint(10, 150)
         cr.set_line_width(lineWidth)
@@ -83,7 +93,11 @@ class Checkbox(DrawableComponent):
                     controlRightY, topRight[0], topRight[1])
         cr.stroke()
 
-        surface.write_to_png(path)
+        f = io.BytesIO()
+        surface.write_to_png(f)
+        self.tickImage = Image.open(f)
+
+    def combine(self):
 
 
 if __name__ == "__main__":

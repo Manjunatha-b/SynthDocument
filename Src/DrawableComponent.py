@@ -7,9 +7,9 @@ class DrawableComponent():
         self.height = region[1][1]-region[0][1]
         self.image = Image.new('RGB', (self.width, self.height), color='white')
         self.canvas = ImageDraw.Draw(self.image)
-        self.boundingBox = {}
+        self.label = {}
 
-    def getBoundingBox(self):
+    def getLabel(self):
         return self.boundingBox
 
     def getImage(self):
@@ -19,4 +19,4 @@ class DrawableComponent():
         self.image.save(path)
 
     def __call__(self):
-        return self.image, self.boundingBox
+        return self.image, self.label
