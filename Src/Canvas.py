@@ -1,12 +1,12 @@
 from PIL import Image, ImageDraw, ImageFont
 from essential_generators import DocumentGenerator
 from Src.Text import Text
-from Src.DrawableComponent import DrawableComponent
+from Src.Component import Component
 import random
 from queue import Queue
 
 
-class Canvas(DrawableComponent):
+class Canvas(Component):
     def __init__(self):
         super().__init__([(0, 0), (1200, 1500)])
         self.partitionRegions = []
@@ -19,6 +19,7 @@ class Canvas(DrawableComponent):
         self.partition()
         for region in self.partitionRegions:
             text = Text(region, "body", True)
+            self.children.append(text)
             textImage, textBoundingBox = text()
             self.image.paste(textImage, region[0])
 

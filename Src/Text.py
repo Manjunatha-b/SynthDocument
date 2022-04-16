@@ -2,11 +2,11 @@ from string import ascii_letters
 import os
 import random
 import textwrap
-from Src.DrawableComponent import DrawableComponent
+from Src.Component import Component
 from PIL import ImageFont
 
 
-class Text(DrawableComponent):
+class Text(Component):
     typographySizes = {
         "header": [
             (90, 120),

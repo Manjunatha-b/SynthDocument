@@ -4,14 +4,14 @@ import math
 import cairo
 import random
 import numpy as np
+from math import ceil
 from PIL import Image
 from imgaug import augmenters as iaa
-from DrawableComponent import DrawableComponent
 from imgaug.augmentables.polys import Polygon, PolygonsOnImage
-# from Src.DrawableComponent import DrawableComponent
+from Src.Component import Component
 
 
-class Checkbox(DrawableComponent):
+class Checkbox(Component):
     def __init__(self, region):
         super().__init__(region)
         self.isSelected = random.random() > 0.5
@@ -31,51 +31,51 @@ class Checkbox(DrawableComponent):
             self.combine()
         
         self.boxImage = 255-self.boxImage
+    
+    def getImageGivenSurface(self,surface):
+        f = io.BytesIO()
+        surface.write_to_png(f)
+        f.seek(0)
+        image = np.asarray(bytearray(f.read()), dtype=np.uint8)
+        image = cv2.imdecode(image,cv2.IMREAD_UNCHANGED)[:,:,3]
+        return image
 
     def generateBox(self):
         width = 575 + random.randint(-100, 100)
         height = 575+random.randint(-100, 100)
         x, y = (700-width)//2, (700-height)//2
         r = random.randint(0, 50) if(random.random() > 0.5) else 0
-        surface = cairo.SVGSurface(
-            None, 700, 700)
-        context = cairo.Context(surface)
         lineWidth = random.randint(5, 50) if(
             random.random() > 0.5) else random.randint(5, 10)
-        context.set_line_width(lineWidth)
-        context.set_source_rgb(0, 0, 0)
+        halfLineWidth = ceil(lineWidth/2)
+        surface = cairo.SVGSurface(None, 700, 700)
+        context = cairo.Context(surface)
 
-        context.arc(x+r, y+r, r, math.pi, 3*math.pi/2)
-        context.arc(x+width-r, y+r, r, 3*math.pi/2, 0)
-        context.arc(x+width-r, y+height-r, r, 0, math.pi/2)
-        context.arc(x+r, y+height-r, r, math.pi/2, math.pi)
-        context.close_path()
-        context.stroke()
-        f = io.BytesIO()
-        surface.write_to_png(f)
-        f.seek(0)
-        self.boxImage = np.asarray(bytearray(f.read()), dtype=np.uint8)
-        self.boxImage = cv2.imdecode(self.boxImage, cv2.IMREAD_UNCHANGED)[:,:,3]
-        boundingPoly = PolygonsOnImage([Polygon([
-            (x,y),
-            (x+width,y),
-            (x+width,y+height),
-            (x,y+height)
+        def initSurface():
+            context.set_line_width(lineWidth)
+            context.set_source_rgb(0, 0, 0)
+
+        def draw():
+            context.arc(x+r, y+r, r, math.pi, 3*math.pi/2)
+            context.arc(x+width-r, y+r, r, 3*math.pi/2, 0)
+            context.arc(x+width-r, y+height-r, r, 0, math.pi/2)
+            context.arc(x+r, y+height-r, r, math.pi/2, math.pi)
+            context.close_path()
+            context.stroke()
+        
+        initSurface()
+        draw()
+        self.boxImage = self.getImageGivenSurface(surface)
+        self.poly = PolygonsOnImage([Polygon([
+            (x-halfLineWidth,y-halfLineWidth),
+            (x+width+halfLineWidth,y-halfLineWidth),
+            (x+width+halfLineWidth,y+height+halfLineWidth),
+            (x-halfLineWidth,y+height+halfLineWidth)
         ])],self.boxImage.shape)
-        self.boxImage,boundingPolyAug= self.boxAug(image=self.boxImage,polygons = boundingPoly)
-        self.boxImage = cv2.cvtColor(self.boxImage,cv2.COLOR_GRAY2RGB)
-        print(self.boxImage.shape)
-        self.boxImage = boundingPolyAug.draw_on_image(self.boxImage)
-        cv2.imwrite('bruh.png',self.boxImage)
         
         
     def generateTick(self):
-        surface = cairo.SVGSurface(None, 700, 700)
-        cr = cairo.Context(surface)
         lineWidth = random.randint(10, 150)
-        cr.set_line_width(lineWidth)
-        cr.set_source_rgb(0, 0, 0)
-
         fixed = [350+random.randint(-50, 50),
                  600+random.randint(-100, 0)]
         topLeft = [
@@ -84,7 +84,6 @@ class Checkbox(DrawableComponent):
             650+random.randint(-80, 20), 50+random.randint(-20, 80)]
         controlLeftX = random.randint(topLeft[0], fixed[0])
         controlLeftY = random.randint(topLeft[1], fixed[1])
-
         controlRightX = random.randint(fixed[0], topRight[0])
         m = (topRight[1]-fixed[1])/(topRight[0]-fixed[0])
         c = fixed[1]-m*fixed[0]
@@ -95,31 +94,36 @@ class Checkbox(DrawableComponent):
             abs((rightControlDistance/rightDistance)-0.5)
         controlRightY = random.randint(
             topRight[1], floorY)*rightControlFactor
+        surface = cairo.SVGSurface(None, 700, 700)
+        cr = cairo.Context(surface)
+        
+        def initSurface():
+            cr.set_line_width(lineWidth)
+            cr.set_source_rgb(0, 0, 0)
+    
+        def draw():
+            if(random.random() > 0.5):
+                cr.set_line_join(cairo.LINE_JOIN_BEVEL)
+            else:
+                cr.set_line_join(cairo.LINE_JOIN_ROUND)
 
-        if(random.random() > 0.5):
-            cr.set_line_join(cairo.LINE_JOIN_BEVEL)
-        else:
-            cr.set_line_join(cairo.LINE_JOIN_ROUND)
-
-        if(random.random() > 0.5):
-            cr.set_line_cap(cairo.LINE_CAP_BUTT)
-        else:
-            cr.set_line_cap(cairo.LINE_CAP_ROUND)
-
-        cr.curve_to(topLeft[0], topLeft[1], controlLeftX,
-                    controlLeftY, fixed[0], fixed[1])
-        cr.curve_to(fixed[0], fixed[1], controlRightX,
-                    controlRightY, topRight[0], topRight[1])
-        cr.stroke()
-
-        f = io.BytesIO()
-        surface.write_to_png(f)
-        f.seek(0)
-        self.tickImage= np.asarray(bytearray(f.read()), dtype=np.uint8)
-        self.tickImage = cv2.imdecode(self.tickImage, cv2.IMREAD_UNCHANGED)[:,:,3]
+            if(random.random() > 0.5):
+                cr.set_line_cap(cairo.LINE_CAP_BUTT)
+            else:
+                cr.set_line_cap(cairo.LINE_CAP_ROUND)
+            cr.curve_to(topLeft[0], topLeft[1], controlLeftX,
+                        controlLeftY, fixed[0], fixed[1])
+            cr.curve_to(fixed[0], fixed[1], controlRightX,
+                        controlRightY, topRight[0], topRight[1])
+            cr.stroke()
+        
+        initSurface()
+        draw()
+        self.tickImage = self.getImageGivenSurface(surface)
 
     def combine(self):
         self.tickImage = self.tickAug(images=[self.tickImage])[0]
+        self.boxImage,self.poly= self.boxAug(image=self.boxImage,polygons = self.poly)
         self.boxImage = cv2.addWeighted(self.boxImage, 1, self.tickImage, 1, 0.0)
         
         
